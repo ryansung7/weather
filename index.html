@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiu Keng Leng Weather Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #1e1e1e;
+            color: white;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 10px;
+            max-width: 1536px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .date-time {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 60%; /* As requested, 60% of screen height */
+        }
+
+        .date-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 0;
+            height: 30%;
+        }
+
+        .date-numeric {
+            font-size: 11vw; /* Adjusted for balance */
+            font-weight: bold;
+            text-align: center;
+            line-height: 1;
+        }
+
+        .date-weekday {
+            font-size: 5vw; /* Responsive but contained */
+            text-align: center;
+            line-height: 1;
+            margin-top: 5px;
+        }
+
+        .time-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 70%; /* Giving more space to time */
+            width: 100%;
+        }
+
+        .time {
+            font-size: 25vw; /* Maximized time size */
+            text-align: center;
+            line-height: 1;
+            font-weight: bold;
+        }
+
+        .weather {
+            height: 40%; /* Remaining 40% of screen height */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .forecast {
+            display: flex;
+            flex: 1;
+        }
+
+        .forecast-column {
+            flex: 1;
+            border: 1px solid #444;
+            border-radius: 10px;
+            margin: 5px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .forecast-header {
+            font-size: 1.2vw; /* Responsive font size */
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-align: center;
+            padding: 0 5px;
+        }
+
+        .weather-icon {
+            font-size: 5vw; /* Responsive font size */
+            margin: 5px 0;
+        }
+
+        .temp {
+            font-size: 3vw; /* Responsive font size */
+            margin: 3px 0;
+        }
+
+        .humidity {
+            font-size: 1.5vw; /* Responsive font size */
+        }
+
+        .refresh-counter {
+            font-size: 8px; /* As requested, small font */
+            text-align: center;
+            margin-top: 5px;
+            color: #999;
+        }
+
+        .location {
+            font-size: 1.2vw;
+            text-align: center;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .loading-text {
+            font-size: 24px;
+            margin-top: 20px;
+        }
+
+        /* Media queries for better responsiveness */
+        @media (min-width: 1200px) {
+            .date-numeric { font-size: 120px; }
+            .date-weekday { font-size: 72px; }
+            .time { font-size: 280px; } /* Much larger time at desktop sizes */
+            .forecast-header { font-size: 20px; }
+            .weather-icon { font-size: 60px; }
+            .temp { font-size: 36px; }
+            .humidity { font-size: 18px; }
+            .location { font-size: 16px; }
+        }
+
+        @media (max-width: 768px) {
+            .date-weekday { font-size: 36px; }
+            .forecast-column { padding: 5px; }
+            .time { font-size: 180px; } /* Still large but contained on smaller screens */
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading weather data...</div>
+    </div>
+
+    <div class="container">
+        <div class="date-time">
+            <div class="date-container">
+                <div class="date-numeric" id="date-numeric">--</div>
+                <div class="date-weekday" id="date-weekday">--</div>
+            </div>
+            <div class="time-container">
+                <div class="time" id="time">--:--:--</div>
+            </div>
+        </div>
+        
+        <div class="weather">
+            <div class="location">Tiu Keng Leng, Hong Kong</div>
+            <div class="forecast">
+                <div class="forecast-column">
+                    <div class="forecast-header" id="current-header">Now</div>
+                    <div class="weather-icon" id="current-icon">--</div>
+                    <div class="temp" id="current-temp">--°C</div>
+                    <div class="humidity" id="current-humidity">--% Humidity</div>
+                </div>
+                <div class="forecast-column">
+                    <div class="forecast-header" id="afternoon-header">Afternoon</div>
+                    <div class="weather-icon" id="afternoon-icon">--</div>
+                    <div class="temp" id="afternoon-temp">--°C</div>
+                    <div class="humidity" id="afternoon-humidity">--% Humidity</div>
+                </div>
+                <div class="forecast-column">
+                    <div class="forecast-header" id="evening-header">Evening</div>
+                    <div class="weather-icon" id="evening-icon">--</div>
+                    <div class="temp" id="evening-temp">--°C</div>
+                    <div class="humidity" id="evening-humidity">--% Humidity</div>
+                </div>
+                <div class="forecast-column">
+                    <div class="forecast-header" id="tomorrow-header">Tomorrow</div>
+                    <div class="weather-icon" id="tomorrow-icon">--</div>
+                    <div class="temp" id="tomorrow-temp">--°C</div>
+                    <div class="humidity" id="tomorrow-humidity">--% Humidity</div>
+                </div>
+            </div>
+            <div class="refresh-counter" id="refresh-counter">Refreshing in 600 seconds...</div>
+        </div>
+    </div>
+
+    <script>
+        // Setup variables
+        let refreshSeconds = 600; // 10 minutes (as requested)
+        let refreshInterval;
+        
+        // Weather icons mapping based on HKO weather codes
+        const weatherIcons = {
+            50: '☀️',  // Sunny
+            51: '🌤️',  // Sunny Periods
+            52: '🌤️',  // Sunny Intervals
+            53: '🌥️',  // Sunny Periods with a Few Showers
+            54: '🌦️',  // Sunny Intervals with Showers
+            60: '☁️',  // Cloudy
+            61: '🌧️',  // Overcast
+            62: '🌦️',  // Light Rain
+            63: '🌧️',  // Rain
+            64: '🌧️',  // Heavy Rain
+            65: '⛈️',  // Thunderstorms
+            70: '🌫️',  // Mist
+            71: '🌫️',  // Fog
+            72: '🌫️',  // Mist/Fog and Sunny Periods
+            73: '🌫️',  // Mist/Fog and Sunny Intervals
+            74: '🌫️',  // Haze
+            75: '🌫️',  // Haze and Sunny Periods
+            76: '🌫️',  // Haze and Sunny Intervals
+            80: '🌫️',  // Mist/Fog with Light Rain
+            81: '🌫️',  // Mist/Fog with Rain
+            82: '🌫️',  // Mist/Fog with Heavy Rain
+            83: '🌫️',  // Mist/Fog with Thunderstorms
+            84: '🌫️',  // Haze with Light Rain
+            85: '🌫️',  // Haze with Rain
+            86: '🌫️',  // Haze with Heavy Rain
+            87: '🌫️',  // Haze with Thunderstorms
+            90: '❄️',  // Cold
+            91: '🥵',  // Hot
+            92: '💨',  // Windy
+            93: '🍃'   // Dry
+        };
+        
+        // Default values for missing data
+        const defaultIcon = '🌡️';
+        const nearestHKOStation = 'Sai Kung'; // Closest station to Tiu Keng Leng
+
+        // Format date as "D-MMMM" and "DDDD" separately
+        function formatDate(date) {
+            const day = date.getDate();
+            const month = date.toLocaleString('en-US', { month: 'long' }).toUpperCase();
+            const weekday = date.toLocaleString('en-US', { weekday: 'long' });
+            
+            document.getElementById('date-numeric').textContent = `${day}-${month}`;
+            document.getElementById('date-weekday').textContent = weekday;
+        }
+
+        // Format date as D/MMM for forecast headers
+        function formatForecastDate(date) {
+            const day = date.getDate();
+            const month = date.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+            return `${day}/${month}`;
+        }
+
+        // Update date and time
+        function updateDateTime() {
+            const now = new Date();
+            
+            // Format date: D-MMMM, DDDD (e.g., 3-MARCH, Monday)
+            formatDate(now);
+            
+            // Format time: HH:MM:SS (24-hour)
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('time').textContent = `${hours}:${minutes}:${seconds}`;
+        }
+
+        // Fetch current weather data from HKO
+        async function fetchCurrentWeather() {
+            try {
+                // HKO Current Weather API
+                const response = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=en');
+                const data = await response.json();
+                
+                // Find temperature for Sai Kung (closest to Tiu Keng Leng)
+                let temperature = null;
+                let humidity = null;
+                
+                if (data.temperature && data.temperature.data) {
+                    const saiKungTemp = data.temperature.data.find(station => station.place === nearestHKOStation);
+                    if (saiKungTemp) {
+                        temperature = saiKungTemp.value;
+                    } else if (data.temperature.data.length > 0) {
+                        // Fallback to HKO headquarters if Sai Kung data not available
+                        temperature = data.temperature.data.find(station => station.place === 'Hong Kong Observatory') 
+                            ? data.temperature.data.find(station => station.place === 'Hong Kong Observatory').value
+                            : data.temperature.data[0].value;
+                    }
+                }
+                
+                // Get humidity
+                if (data.humidity && data.humidity.data) {
+                    const saiKungHumidity = data.humidity.data.find(station => station.place === nearestHKOStation);
+                    if (saiKungHumidity) {
+                        humidity = saiKungHumidity.value;
+                    } else if (data.humidity.data.length > 0) {
+                        // Fallback to HKO headquarters if Sai Kung data not available
+                        humidity = data.humidity.data.find(station => station.place === 'Hong Kong Observatory')
+                            ? data.humidity.data.find(station => station.place === 'Hong Kong Observatory').value
+                            : data.humidity.data[0].value;
+                    }
+                }
+                
+                // Get current weather icon
+                let weatherIcon = defaultIcon;
+                if (data.icon) {
+                    const iconCode = parseInt(data.icon);
+                    weatherIcon = weatherIcons[iconCode] || defaultIcon;
+                }
+                
+                return {
+                    temperature: temperature,
+                    humidity: humidity,
+                    icon: weatherIcon
+                };
+            } catch (error) {
+                console.error('Error fetching current weather:', error);
+                return {
+                    temperature: '--',
+                    humidity: '--',
+                    icon: defaultIcon
+                };
+            }
+        }
+
+        // Fetch forecast data from HKO
+        async function fetchForecastWeather() {
+            try {
+                // HKO 9-day Forecast API
+                const response = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=fnd&lang=en');
+                const data = await response.json();
+                
+                const forecasts = [];
+                
+                if (data && data.weatherForecast) {
+                    data.weatherForecast.forEach(day => {
+                        forecasts.push({
+                            date: new Date(day.forecastDate.substring(0, 4), 
+                                          parseInt(day.forecastDate.substring(4, 6)) - 1, 
+                                          day.forecastDate.substring(6, 8)),
+                            minTemp: day.forecastMintemp.value,
+                            maxTemp: day.forecastMaxtemp.value,
+                            humidity: {
+                                min: day.forecastMinrh.value,
+                                max: day.forecastMaxrh.value
+                            },
+                            icon: weatherIcons[day.ForecastIcon] || defaultIcon
+                        });
+                    });
+                }
+                
+                return forecasts;
+            } catch (error) {
+                console.error('Error fetching forecast:', error);
+                return [];
+            }
+        }
+
+        // Get local weather warning information
+        async function fetchWeatherWarnings() {
+            try {
+                const response = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=warnsum&lang=en');
+                const data = await response.json();
+                
+                return data;
+            } catch (error) {
+                console.error('Error fetching weather warnings:', error);
+                return null;
+            }
+        }
+
+        // Fetch all weather data and update display
+        async function fetchWeatherData() {
+            try {
+                // Get current weather
+                const currentWeather = await fetchCurrentWeather();
+                
+                // Get forecast
+                const forecasts = await fetchForecastWeather();
+                
+                // Get warnings
+                const warnings = await fetchWeatherWarnings();
+                
+                // Update the display
+                updateWeatherDisplay(currentWeather, forecasts, warnings);
+                
+                // Hide loading screen
+                document.getElementById('loading').style.display = 'none';
+            } catch (error) {
+                console.error('Error fetching weather data:', error);
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // Update weather display with fetched data
+        function updateWeatherDisplay(currentWeather, forecasts, warnings) {
+            // Current weather
+            document.getElementById('current-temp').textContent = `${currentWeather.temperature || '--'}°C`;
+            document.getElementById('current-humidity').textContent = `${currentWeather.humidity || '--'}% Humidity`;
+            document.getElementById('current-icon').textContent = currentWeather.icon || defaultIcon;
+            document.getElementById('current-header').textContent = 'Now';
+            
+            if (forecasts && forecasts.length > 0) {
+                const today = new Date();
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                
+                // Calculate afternoon and evening for today (approximation since HKO doesn't provide hourly data)
+                // We'll use the current day's data, adjusting slightly for time of day
+                const todayForecast = forecasts[0];
+                
+                // Afternoon (midpoint temp, biased towards max)
+                const afternoonTemp = Math.round((todayForecast.maxTemp * 0.7 + todayForecast.minTemp * 0.3));
+                const afternoonHumidity = Math.round((todayForecast.humidity.min * 0.3 + todayForecast.humidity.max * 0.7));
+                
+                document.getElementById('afternoon-temp').textContent = `${afternoonTemp}°C`;
+                document.getElementById('afternoon-humidity').textContent = `${afternoonHumidity}% Humidity`;
+                document.getElementById('afternoon-icon').textContent = todayForecast.icon;
+                document.getElementById('afternoon-header').textContent = `${formatForecastDate(today)} (12-18)`;
+                
+                // Evening (closer to min temp)
+                const eveningTemp = Math.round((todayForecast.maxTemp * 0.4 + todayForecast.minTemp * 0.6));
+                const eveningHumidity = Math.round((todayForecast.humidity.min * 0.4 + todayForecast.humidity.max * 0.6));
+                
+                document.getElementById('evening-temp').textContent = `${eveningTemp}°C`;
+                document.getElementById('evening-humidity').textContent = `${eveningHumidity}% Humidity`;
+                document.getElementById('evening-icon').textContent = todayForecast.icon;
+                document.getElementById('evening-header').textContent = `${formatForecastDate(today)} (18-24)`;
+                
+                // Tomorrow
+                if (forecasts.length > 1) {
+                    const tomorrowForecast = forecasts[1];
+                    const tomorrowTemp = Math.round((tomorrowForecast.maxTemp + tomorrowForecast.minTemp) / 2);
+                    const tomorrowHumidity = Math.round((tomorrowForecast.humidity.min + tomorrowForecast.humidity.max) / 2);
+                    
+                    document.getElementById('tomorrow-temp').textContent = `${tomorrowTemp}°C`;
+                    document.getElementById('tomorrow-humidity').textContent = `${tomorrowHumidity}% Humidity`;
+                    document.getElementById('tomorrow-icon').textContent = tomorrowForecast.icon;
+                    document.getElementById('tomorrow-header').textContent = `${formatForecastDate(tomorrow)} (Day)`;
+                }
+            }
+        }
+
+        // Update refresh counter
+        function updateRefreshCounter() {
+            document.getElementById('refresh-counter').textContent = `Refreshing in ${refreshSeconds} seconds...`;
+            refreshSeconds--;
+            
+            if (refreshSeconds < 0) {
+                refreshSeconds = 600; // Reset to 10 minutes as requested
+                updateDateTime();
+                fetchWeatherData();
+            }
+        }
+
+        // Initialize
+        function init() {
+            updateDateTime();
+            fetchWeatherData();
+            
+            // Update time every second
+            setInterval(updateDateTime, 1000);
+            
+            // Update refresh counter every second
+            refreshInterval = setInterval(updateRefreshCounter, 1000);
+        }
+
+        // Start the app
+        window.onload = init;
+    </script>
+</body>
+</html>
